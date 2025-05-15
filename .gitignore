@@ -1,0 +1,661 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+
+
+
+# // // type 1
+#   // @Override
+#   // public CustomResult CalculatorMaterial(CalculatorMaterialDto res) {
+#   // try {
+#   // List<MaterialDTO> list = type1(res.getPlanIds(), res.getSupplierId());
+#   // Map<String, MaterialDTO> resultMap = new HashMap<>();
+#   // for (MaterialDTO material : list) {
+#   // String key = material.getName() + "|" + material.getId() + "|" +
+#   // material.getCode() + "|"
+#   // + material.getUnitConver() + "|" + material.isMapped() + "|" +
+#   // material.getSuppliers().hashCode() + "|"
+#   // + material.getImportUnit() + "|" + material.getConvertRate();
+#   // // Nếu key đã tồn tại trong Map, cộng dồn requireQuantity
+#   // if (resultMap.containsKey(key)) {
+#   // MaterialDTO existingMaterial = resultMap.get(key);
+#   // existingMaterial.setRequireQuantity(existingMaterial.getRequireQuantity() +
+#   // material.getRequireQuantity());
+#   // } else {
+#   // // Nếu key chưa tồn tại, thêm mới vào Map
+#   // resultMap.put(key, new MaterialDTO(
+#   // material.getName(),
+#   // material.getId(),
+#   // material.getCode(),
+#   // material.getQuantity(),
+#   // material.getUnitConver(),
+#   // material.getSuppliers(),
+#   // material.isMapped(),
+#   // material.getPurchaseQuantity(),
+#   // material.getRequireQuantity(),
+#   // material.getStockQuantity(),
+#   // material.getImportUnit(),
+#   // material.getConvertRate(),
+#   // material.getCodeName(),
+#   // material.getMaterial(), 0.0));
+#   // }
+#   // }
+
+#   // // Chuyển đổi Map thành List
+#   // List<MaterialDTO> resultList = new ArrayList<>(resultMap.values());
+#   // /// end
+#   // for (MaterialDTO item : resultList) {
+#   // Double quantityPurchase = 0.0;
+#   // List<PurchaseOrderDetail> listPODetail =
+#   // purchaseOrderDetailRepo.findPODetailStatus(item.getId());
+#   // for (PurchaseOrderDetail podetail : listPODetail) {
+#   // quantityPurchase = quantityPurchase + podetail.getQuantity();
+#   // List<MaterialImportDetail> poImported =
+#   // materialImportDetailRepo.findByPurchaseOrderDetail(podetail);
+#   // for (MaterialImportDetail imported : poImported) {
+#   // quantityPurchase = quantityPurchase - imported.getQuantity();
+#   // }
+#   // }
+#   // Double stockQuantity = 0.0;
+#   // List<StockMaterialRes> stockMat =
+#   // stockMaterialRepo.findByMaterialId(item.getId());
+#   // for (StockMaterialRes stock : stockMat) {
+#   // stockQuantity = stockQuantity + stock.getQuantity();
+#   // }
+#   // item.setPurchaseQuantity(quantityPurchase);
+#   // item.setStockQuantity(stockQuantity);
+#   // item.setQuantity(
+#   // Math.ceil(item.getRequireQuantity() - (stockQuantity / item.getConvertRate())
+#   // - quantityPurchase));
+#   // if (item.getQuantity() < 0) {
+#   // item.setQuantity(0.0);
+#   // }
+#   // item.setRequireQuantity(Math.ceil(item.getRequireQuantity()));
+#   // for (SupplierMaterial sup : item.getSuppliers()) {
+#   // sup.getSupplier().setSupplierMaterials(null);
+#   // sup.getMaterial().setSupplierMaterials(null);
+#   // }
+
+#   // }
+#   // return new CustomResult(200, "Get successfully", resultList);
+#   // } catch (Exception e) {
+#   // return new CustomResult(500, e.getMessage(), null);
+#   // }
+#   // }
+
+#   // public List<MaterialDTO> type1(List<Long> planData, Long supplierId) {
+#   // List<MaterialDTO> result = new ArrayList<>();
+
+#   // var isSupplier = supplierRepo.findById(supplierId);
+#   // if (!isSupplier.isPresent()) {
+#   // return null;
+#   // }
+
+#   // for (Long planId : planData) {
+#   // List<PlanProduceDetail> listPlanProduceDetails =
+#   // _ProducePlanDetailRepository.findByPlanProduceId(planId);
+#   // for (PlanProduceDetail planProduceDetail : listPlanProduceDetails) {
+#   // for (BOM bom : planProduceDetail.getProduct().getBoms()) {
+#   // if (bom.getStatus().equalsIgnoreCase("1")) {
+#   // if (bom.getSemiProduct() != null) {
+#   // List<MaterialDTO> dataResultList = processSemiProduct(bom,
+#   // planProduceDetail.getQuantity() * bom.getQuantity(),
+#   // isSupplier.get());
+
+#   // if (dataResultList != null) {
+#   // result.addAll(dataResultList);
+#   // }
+#   // } else {
+#   // MaterialDTO dataResult = processMaterial(bom,
+#   // planProduceDetail.getQuantity(), isSupplier.get());
+#   // if (dataResult != null) {
+#   // result.add(dataResult);
+#   // }
+#   // }
+#   // }
+#   // }
+#   // }
+#   // }
+#   // return result;
+#   // }
+
+#   // @Data
+#   // @NoArgsConstructor
+#   // @AllArgsConstructor
+#   // public class MaterialDTO {
+#   // String name;
+#   // Long id;
+#   // String code;
+#   // Double quantity;
+#   // String unitConver;
+#   // List<SupplierMaterial> suppliers;
+#   // boolean isMapped;
+#   // Double purchaseQuantity;
+#   // Double requireQuantity;
+#   // Double stockQuantity;
+#   // String importUnit;
+#   // Double convertRate;
+#   // String codeName;
+#   // MaterialSelect material;
+#   // Double price;
+#   // }
+
+#   // @Data
+#   // @NoArgsConstructor
+#   // @AllArgsConstructor
+#   // public class MaterialSelect {
+#   // String name;
+#   // Long id;
+#   // String codeName;
+#   // Double priceForOne;
+#   // }
+
+#   // public MaterialDTO processMaterial(BOM bom, Double productQuantity, Supplier
+#   // supplier) {
+#   // Material material = bom.getMaterial();
+#   // Double totalQuantity = productQuantity * bom.getQuantity() /
+#   // material.getConvertRate();
+#   // List<SupplierMaterial> listSupplierMaterials =
+#   // material.getSupplierMaterials();
+#   // List<SupplierMaterial> list = listSupplierMaterials.stream()
+#   // .filter(supplierMaterial -> "1".equals(supplierMaterial.getStatus()))
+#   // .collect(Collectors.toList());
+
+#   // for (SupplierMaterial supplierMaterial : list) {
+#   // List<MaterialImportDetail> imD = materialImportDetailRepo
+#   // .findBySupplierMaterialOrderByCreateDateDesc(supplierMaterial);
+#   // Double price = 0.0;
+#   // if (imD.size() > 0) {
+#   // price = imD.get(0).getPrice() / imD.get(0).getQuantity();
+#   // }
+#   // if (supplierMaterial.getSupplier().getId() == supplier.getId()) {
+
+#   // return new MaterialDTO(material.getName(), material.getId(),
+#   // material.getCode(), 0.0,
+#   // material.getConvertUnit(), list, true, 0.0, totalQuantity,
+#   // 0.0, material.getImportUnit(), material.getConvertRate(),
+#   // "(" + material.getCode() + ") " + material.getName(), new
+#   // MaterialSelect(material.getName(),
+#   // material.getId(), "(" + material.getCode() + ") " + material.getName(),
+#   // price),
+#   // 0.0);
+#   // }
+#   // }
+#   // return new MaterialDTO(material.getName(), material.getId(),
+#   // material.getCode(), 0.0,
+#   // material.getConvertUnit(), list, false, 0.0,
+#   // totalQuantity, 0.0, material.getImportUnit(), material.getConvertRate(),
+#   // "(" + material.getCode() + ") " + material.getName(),
+#   // new MaterialSelect(material.getName(), material.getId(), "(" +
+#   // material.getCode() + ") " + material.getName(),
+#   // 0.0),
+#   // 0.0);
+
+#   // }
+
+#   // public List<MaterialDTO> processSemiProduct(BOM bom, Double productQuantity,
+#   // Supplier supplier) {
+#   // if (bom.getSemiProduct() != null) {
+#   // List<MaterialDTO> dataResult = new ArrayList<>();
+#   // for (BOM e : bom.getSemiProduct().getBoms()) {
+#   // if (e.getStatus().equalsIgnoreCase("1")) {
+#   // MaterialDTO m = processMaterial(e, productQuantity, supplier);
+#   // dataResult.add(m);
+#   // }
+#   // }
+#   // return dataResult;
+#   // }
+#   // return null;
+#   // }
+
+#   // // type 2
+#   // @Override
+#   // public CustomResult CalculatorLotNo(CalculatorLotNoDto res) {
+#   // try {
+#   // List<MaterialLotNoDTO> list = type2(res.getMaterialIds(),
+#   // res.getSupplierId());
+#   // Map<String, MaterialLotNoDTO> resultMap = new HashMap<>();
+#   // for (MaterialLotNoDTO material : list) {
+#   // String key = material.getName() + "|" + material.getId() + "|" +
+#   // material.getCode() + "|"
+#   // + material.getUnitConver() + "|" + material.isMapped() + "|"
+#   // + material.getImportUnit() + "|" + material.getConvertRate();
+#   // // Nếu key đã tồn tại trong Map, cộng dồn requireQuantity
+#   // if (resultMap.containsKey(key)) {
+#   // MaterialLotNoDTO existingMaterial = resultMap.get(key);
+#   // existingMaterial.setRequireQuantity(existingMaterial.getRequireQuantity() +
+#   // material.getRequireQuantity());
+#   // existingMaterial.setLotNo(existingMaterial.getLotNo() + ";" +
+#   // material.getLotNo());
+#   // } else {
+#   // // Nếu key chưa tồn tại, thêm mới vào Map
+#   // resultMap.put(key, new MaterialLotNoDTO(
+#   // material.getName(),
+#   // material.getId(),
+#   // material.getCode(),
+#   // material.getQuantity(),
+#   // material.getUnitConver(),
+#   // material.getSuppliers(),
+#   // material.isMapped(),
+#   // material.getPurchaseQuantity(),
+#   // material.getRequireQuantity(),
+#   // material.getStockQuantity(),
+#   // material.getImportUnit(),
+#   // material.getConvertRate(),
+#   // material.getCodeName(),
+#   // material.getMaterial(),
+#   // ";" + material.getLotNo()));
+#   // }
+#   // }
+
+#   // // Chuyển đổi Map thành List
+#   // List<MaterialLotNoDTO> resultList = new ArrayList<>(resultMap.values());
+
+#   // List<MaterialLotNoDTO> resultFinal = new ArrayList<>();
+
+#   // List<MaterialLotNoDTO> filteredList = resultList.stream()
+#   // .filter(dto -> res.getMaterialIds().contains(dto.getId()))
+#   // .collect(Collectors.toList());
+#   // resultFinal.addAll(filteredList);
+
+#   // Set<Long> existingIds = resultList.stream()
+#   // .map(MaterialLotNoDTO::getId)
+#   // .collect(Collectors.toSet());
+
+#   // List<Long> missingIds = res.getMaterialIds().stream()
+#   // .filter(id -> !existingIds.contains(id))
+#   // .collect(Collectors.toList());
+
+#   // if (missingIds.size() > 0) {
+#   // for (Long materialId : missingIds) {
+#   // var isMaterial = materialRepo.findById(materialId);
+#   // if (isMaterial.isPresent()) {
+#   // Material m = isMaterial.get();
+
+#   // MaterialLotNoDTO mDto = new MaterialLotNoDTO(
+#   // m.getName(), m.getId(), m.getCode(), 0.0,
+#   // m.getConvertUnit(), null, true, 0.0,
+#   // 0.0, 0.0, m.getImportUnit(), m.getConvertRate(),
+#   // "(" + m.getCode() + ") " + m.getName(),
+#   // new MaterialSelect(m.getName(), m.getId(), "(" + m.getCode() + ") " +
+#   // m.getName(), 0.0), null);
+#   // resultFinal.add(mDto);
+#   // }
+#   // }
+#   // /// end
+#   // for (MaterialLotNoDTO item : resultFinal) {
+#   // Double quantityPurchase = 0.0;
+#   // List<PurchaseOrderDetail> listPODetail =
+#   // purchaseOrderDetailRepo.findPODetailStatus(item.getId());
+#   // for (PurchaseOrderDetail podetail : listPODetail) {
+#   // quantityPurchase = quantityPurchase + podetail.getQuantity();
+#   // List<MaterialImportDetail> poImported =
+#   // materialImportDetailRepo.findByPurchaseOrderDetail(podetail);
+#   // for (MaterialImportDetail imported : poImported) {
+#   // quantityPurchase = quantityPurchase - imported.getQuantity();
+#   // }
+#   // }
+#   // Double stockQuantity = 0.0;
+#   // List<StockMaterialRes> stockMat =
+#   // stockMaterialRepo.findByMaterialId(item.getId());
+#   // for (StockMaterialRes stock : stockMat) {
+#   // stockQuantity = stockQuantity + stock.getQuantity();
+#   // }
+#   // item.setPurchaseQuantity(quantityPurchase);
+#   // item.setStockQuantity(stockQuantity);
+#   // item.setQuantity(
+#   // Math.ceil(item.getRequireQuantity() - (stockQuantity / item.getConvertRate())
+#   // - quantityPurchase));
+#   // if (item.getQuantity() < 0) {
+#   // item.setQuantity(0.0);
+#   // }
+#   // item.setRequireQuantity(Math.ceil(item.getRequireQuantity()));
+
+#   // }
+
+#   // }
+#   // return new CustomResult(200, "Get successfully", resultFinal);
+
+#   // } catch (Exception e) {
+#   // return new CustomResult(500, e.getMessage(), null);
+#   // }
+#   // }
+
+#   // public List<MaterialLotNoDTO> type2(List<Long> materialIds, Long supplierId)
+#   // {
+#   // try {
+#   // List<MaterialLotNoDTO> result = new ArrayList<>();
+
+#   // var isSupplier = supplierRepo.findById(supplierId);
+#   // if (!isSupplier.isPresent()) {
+#   // return null;
+#   // }
+#   // List<PlanProduceDetail> listPlanDetail =
+#   // producePlanDetailRepo.findByStatusIn();
+#   // for (PlanProduceDetail planProduceDetail : listPlanDetail) {
+#   // List<BOM> boms = planProduceDetail.getProduct().getBoms();
+#   // for (BOM bom : boms) {
+#   // if (bom.getStatus().equalsIgnoreCase("1")) {
+#   // if (bom.getSemiProduct() != null) {
+#   // List<MaterialLotNoDTO> dataResultList = processSemiProductType2(bom,
+#   // planProduceDetail.getQuantity() * bom.getQuantity(),
+#   // isSupplier.get(), planProduceDetail.getPlanProduce().getPlanLotNo());
+
+#   // if (dataResultList != null) {
+#   // result.addAll(dataResultList);
+#   // }
+#   // } else {
+#   // MaterialLotNoDTO dataResult = processMaterialType2(bom,
+#   // planProduceDetail.getQuantity(), isSupplier.get(),
+#   // planProduceDetail.getPlanProduce().getPlanLotNo());
+#   // if (dataResult != null) {
+#   // result.add(dataResult);
+#   // }
+#   // }
+#   // }
+#   // }
+#   // }
+#   // return result;
+#   // } catch (Exception e) {
+#   // throw new RuntimeException(e.getMessage());
+#   // }
+#   // }
+
+#   // public MaterialLotNoDTO processMaterialType2(BOM bom, Double productQuantity,
+#   // Supplier supplier, String LotNo) {
+#   // Material material = bom.getMaterial();
+#   // Double totalQuantity = productQuantity * bom.getQuantity() /
+#   // material.getConvertRate();
+#   // List<SupplierMaterial> listSupplierMaterials =
+#   // material.getSupplierMaterials();
+#   // List<SupplierMaterial> list = listSupplierMaterials.stream()
+#   // .filter(supplierMaterial -> "1".equals(supplierMaterial.getStatus()))
+#   // .collect(Collectors.toList());
+
+#   // for (SupplierMaterial supplierMaterial : list) {
+#   // if (supplierMaterial.getSupplier().getId() == supplier.getId()) {
+#   // List<MaterialImportDetail> imD = materialImportDetailRepo
+#   // .findBySupplierMaterialOrderByCreateDateDesc(supplierMaterial);
+#   // Double price = 0.0;
+#   // if (imD.size() > 0) {
+#   // price = imD.get(0).getPrice() / imD.get(0).getQuantity();
+#   // }
+#   // return new MaterialLotNoDTO(material.getName(), material.getId(),
+#   // material.getCode(), 0.0,
+#   // material.getConvertUnit(), null, true, 0.0, totalQuantity,
+#   // 0.0, material.getImportUnit(), material.getConvertRate(),
+#   // "(" + material.getCode() + ") " + material.getName(), new
+#   // MaterialSelect(material.getName(),
+#   // material.getId(), "(" + material.getCode() + ") " + material.getName(),
+#   // price),
+#   // LotNo);
+#   // }
+#   // }
+#   // return new MaterialLotNoDTO(material.getName(), material.getId(),
+#   // material.getCode(), 0.0,
+#   // material.getConvertUnit(), null, false, 0.0,
+#   // totalQuantity, 0.0, material.getImportUnit(), material.getConvertRate(),
+#   // "(" + material.getCode() + ") " + material.getName(),
+#   // new MaterialSelect(material.getName(), material.getId(), "(" +
+#   // material.getCode() + ") " + material.getName(),
+#   // 0.0),
+#   // LotNo);
+
+#   // }
+
+#   // public List<MaterialLotNoDTO> processSemiProductType2(BOM bom, Double
+#   // productQuantity, Supplier supplier,
+#   // String LotNo) {
+#   // if (bom.getSemiProduct() != null) {
+#   // List<MaterialLotNoDTO> dataResult = new ArrayList<>();
+#   // for (BOM e : bom.getSemiProduct().getBoms()) {
+#   // if (e.getStatus().equalsIgnoreCase("1")) {
+#   // MaterialLotNoDTO m = processMaterialType2(e, productQuantity, supplier,
+#   // LotNo);
+#   // dataResult.add(m);
+#   // }
+#   // }
+#   // return dataResult;
+#   // }
+#   // return null;
+#   // }
+
+#   // @Data
+#   // @NoArgsConstructor
+#   // @AllArgsConstructor
+#   // public class MaterialLotNoDTO {
+#   // String name;
+#   // Long id;
+#   // String code;
+#   // Double quantity;
+#   // String unitConver;
+#   // List<SupplierMaterial> suppliers;
+#   // boolean isMapped;
+#   // Double purchaseQuantity;
+#   // Double requireQuantity;
+#   // Double stockQuantity;
+#   // String importUnit;
+#   // Double convertRate;
+#   // String codeName;
+#   // MaterialSelect material;
+#   // String lotNo;
+#   // }
+#   // // type 3
+
+#   // @Data
+#   // @NoArgsConstructor
+#   // @AllArgsConstructor
+#   // public class MaterialMapSupplier {
+#   // Supplier supplier;
+#   // List<MaterialDTO> materials;
+#   // }
+
+#   // @Override
+#   // public CustomResult CalculatorSupplier(CalculatorSupplierDto res) {
+#   // List<MaterialDTO> list = type3(res.getPlanIds());
+#   // // lấy ra hết tất cả các supplier có trong mảng materialDto ( đảm bảo không
+#   // bị
+#   // // trùng lập)
+#   // Set<Supplier> uniqueSuppliers = list.stream()
+#   // .flatMap(materialDTO -> materialDTO.getSuppliers().stream())
+#   // .map(SupplierMaterial::getSupplier)
+#   // .collect(Collectors.toSet());
+#   // // map lại dữ liệu, lấy hết tất cả materialDto mà được cung cấp mới supplier
+#   // thì
+#   // // map lại với key là supplier
+#   // Map<Supplier, List<MaterialDTO>> materialBySupplier =
+#   // uniqueSuppliers.stream()
+#   // .collect(Collectors.toMap(
+#   // supplier -> supplier, // Key: Supplier
+#   // supplier -> list.stream()
+#   // .filter(materialDTO -> materialDTO.getSuppliers().stream()
+#   // .anyMatch(supplierMaterial ->
+#   // supplierMaterial.getSupplier().getId().equals(supplier.getId())))
+#   // .collect(Collectors.toList()) // Value: List<MaterialDTO>
+#   // ));
+#   // // Chuyển đổi Map sang List<MaterialMapSupplier>
+#   // List<MaterialMapSupplier> materialMapSuppliers =
+#   // materialBySupplier.entrySet().stream()
+#   // .map(entry -> new MaterialMapSupplier(entry.getKey(), entry.getValue()))
+#   // .collect(Collectors.toList());
+
+#   // for (MaterialMapSupplier data : materialMapSuppliers) {
+#   // for (MaterialDTO ma : data.materials) {
+#   // List<MaterialImportDetail> imD = materialImportDetailRepo
+#   // .findLatestBySupplierAndMaterial(data.getSupplier().getId(),
+#   // ma.getMaterial().getId());
+#   // Double price = 0.0;
+#   // if (imD.size() > 0) {
+#   // price = imD.get(0).getPrice() / imD.get(0).getQuantity();
+#   // }
+#   // ma.getMaterial().setPriceForOne(price);
+#   // }
+#   // }
+#   // return new CustomResult(200, "get", materialMapSuppliers);
+#   // }
+
+#   // public List<MaterialDTO> type3(List<Long> planData) {
+#   // List<MaterialDTO> result = new ArrayList<>();
+#   // for (Long planId : planData) {
+#   // List<PlanProduceDetail> listPlanProduceDetails =
+#   // _ProducePlanDetailRepository.findByPlanProduceId(planId);
+#   // for (PlanProduceDetail planProduceDetail : listPlanProduceDetails) {
+#   // for (BOM bom : planProduceDetail.getProduct().getBoms()) {
+#   // if (bom.getStatus().equalsIgnoreCase("1")) {
+#   // if (bom.getSemiProduct() != null) {
+#   // List<MaterialDTO> dataResultList = processSemiProductType3(bom,
+#   // planProduceDetail.getQuantity() * bom.getQuantity());
+
+#   // if (dataResultList != null) {
+#   // result.addAll(dataResultList);
+#   // }
+#   // } else {
+#   // MaterialDTO dataResult = processMaterialType3(bom,
+#   // planProduceDetail.getQuantity());
+#   // if (dataResult != null) {
+#   // result.add(dataResult);
+#   // }
+#   // }
+#   // }
+#   // }
+#   // }
+#   // }
+
+#   // Map<String, MaterialDTO> resultMap = new HashMap<>();
+#   // for (MaterialDTO material : result) {
+#   // String key = material.getName() + "|" + material.getId() + "|" +
+#   // material.getCode() + "|"
+#   // + material.getUnitConver() + "|" + material.isMapped() + "|" +
+#   // material.getSuppliers().hashCode() + "|"
+#   // + material.getImportUnit() + "|" + material.getConvertRate();
+#   // // Nếu key đã tồn tại trong Map, cộng dồn requireQuantity
+#   // if (resultMap.containsKey(key)) {
+#   // MaterialDTO existingMaterial = resultMap.get(key);
+#   // existingMaterial.setRequireQuantity(existingMaterial.getRequireQuantity() +
+#   // material.getRequireQuantity());
+#   // } else {
+#   // // Nếu key chưa tồn tại, thêm mới vào Map
+#   // resultMap.put(key, new MaterialDTO(
+#   // material.getName(),
+#   // material.getId(),
+#   // material.getCode(),
+#   // material.getQuantity(),
+#   // material.getUnitConver(),
+#   // material.getSuppliers(),
+#   // material.isMapped(),
+#   // material.getPurchaseQuantity(),
+#   // material.getRequireQuantity(),
+#   // material.getStockQuantity(),
+#   // material.getImportUnit(),
+#   // material.getConvertRate(),
+#   // material.getCodeName(),
+#   // material.getMaterial(), 0.0));
+#   // }
+#   // }
+
+#   // // Chuyển đổi Map thành List
+#   // List<MaterialDTO> resultList = new ArrayList<>(resultMap.values());
+#   // /// end
+#   // for (MaterialDTO item : resultList) {
+#   // Double quantityPurchase = 0.0;
+#   // List<PurchaseOrderDetail> listPODetail =
+#   // purchaseOrderDetailRepo.findPODetailStatus(item.getId());
+#   // for (PurchaseOrderDetail podetail : listPODetail) {
+#   // quantityPurchase = quantityPurchase + podetail.getQuantity();
+#   // List<MaterialImportDetail> poImported =
+#   // materialImportDetailRepo.findByPurchaseOrderDetail(podetail);
+#   // for (MaterialImportDetail imported : poImported) {
+#   // quantityPurchase = quantityPurchase - imported.getQuantity();
+#   // }
+#   // }
+#   // Double stockQuantity = 0.0;
+#   // List<StockMaterialRes> stockMat =
+#   // stockMaterialRepo.findByMaterialId(item.getId());
+#   // for (StockMaterialRes stock : stockMat) {
+#   // stockQuantity = stockQuantity + stock.getQuantity();
+#   // }
+#   // item.setPurchaseQuantity(quantityPurchase);
+#   // item.setStockQuantity(stockQuantity);
+#   // item.setQuantity(
+#   // Math.ceil(item.getRequireQuantity() - (stockQuantity / item.getConvertRate())
+#   // - quantityPurchase));
+#   // if (item.getQuantity() < 0) {
+#   // item.setQuantity(0.0);
+#   // }
+#   // item.setRequireQuantity(Math.ceil(item.getRequireQuantity()));
+#   // for (SupplierMaterial sup : item.getSuppliers()) {
+#   // sup.getSupplier().setSupplierMaterials(null);
+#   // sup.getMaterial().setSupplierMaterials(null);
+#   // }
+
+#   // }
+
+#   // return resultList;
+#   // }
+
+#   // public MaterialDTO processMaterialType3(BOM bom, Double productQuantity) {
+#   // Material material = bom.getMaterial();
+#   // Double totalQuantity = productQuantity * bom.getQuantity() /
+#   // material.getConvertRate();
+#   // List<SupplierMaterial> listSupplierMaterials =
+#   // material.getSupplierMaterials();
+#   // List<SupplierMaterial> list = listSupplierMaterials.stream()
+#   // .filter(supplierMaterial -> "1".equals(supplierMaterial.getStatus()))
+#   // .collect(Collectors.toList());
+
+#   // return new MaterialDTO(material.getName(), material.getId(),
+#   // material.getCode(), 0.0,
+#   // material.getConvertUnit(), list, true, 0.0, totalQuantity,
+#   // 0.0, material.getImportUnit(), material.getConvertRate(),
+#   // "(" + material.getCode() + ") " + material.getName(),
+#   // new MaterialSelect(material.getName(), material.getId(), "(" +
+#   // material.getCode() + ") " + material.getName(),
+#   // 0.0),
+#   // 0.0);
+#   // }
+
+#   // public List<MaterialDTO> processSemiProductType3(BOM bom, Double
+#   // productQuantity) {
+#   // if (bom.getSemiProduct() != null) {
+#   // List<MaterialDTO> dataResult = new ArrayList<>();
+#   // for (BOM e : bom.getSemiProduct().getBoms()) {
+#   // if (e.getStatus().equalsIgnoreCase("1")) {
+#   // MaterialDTO m = processMaterialType3(e, productQuantity);
+#   // dataResult.add(m);
+#   // }
+#   // }
+#   // return dataResult;
+#   // }
+#   // return null;
+#   // }
