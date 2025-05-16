@@ -7,7 +7,7 @@
 - Update
 - Export Excel
 
-
+## Install
 Add Shintu to your pom.xml
 ```
  <repositories>
