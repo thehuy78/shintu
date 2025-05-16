@@ -1,4 +1,4 @@
-package unitech.demo.lib.query.service;
+package shintu.lib.lib.query.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,11 +8,11 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
-import unitech.demo.lib.query.dto.CustomResult;
-import unitech.demo.lib.query.dto.PagingRequest;
-import unitech.demo.lib.query.dtoFilter.BaseFieldRegistry;
-import unitech.demo.lib.query.interfaces.CrudService;
-import unitech.demo.lib.query.interfaces.DtoEntityMapper;
+import shintu.lib.lib.query.dto.CustomResult;
+import shintu.lib.lib.query.dto.PagingRequest;
+import shintu.lib.lib.query.dtoFilter.BaseFieldRegistry;
+import shintu.lib.lib.query.interfaces.CrudService;
+import shintu.lib.lib.query.interfaces.DtoEntityMapper;
 
 @RequiredArgsConstructor
 public class BaseCrudService<DtoPost, DtoGet, E, ID> implements CrudService<DtoPost, DtoGet, ID> {

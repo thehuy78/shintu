@@ -1,11 +1,10 @@
-package unitech.demo.lib.query.service;
+package shintu.lib.lib.query.service;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.*;
 
-import org.apache.poi.ss.formula.functions.T;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
@@ -25,11 +24,11 @@ import jakarta.persistence.TupleElement;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
 import lombok.*;
-import unitech.demo.lib.query.dto.Filter;
-import unitech.demo.lib.query.dto.PagingRequest;
-import unitech.demo.lib.query.dtoFilter.BaseFieldDefinition;
-import unitech.demo.lib.query.dtoFilter.BaseFieldRegistry;
-import unitech.demo.lib.query.dtoFilter.ExpressionProvider;
+import shintu.lib.lib.query.dto.Filter;
+import shintu.lib.lib.query.dto.PagingRequest;
+import shintu.lib.lib.query.dtoFilter.BaseFieldDefinition;
+import shintu.lib.lib.query.dtoFilter.BaseFieldRegistry;
+import shintu.lib.lib.query.dtoFilter.ExpressionProvider;
 
 @RequiredArgsConstructor
 public class BaseDtoQueryService<T, D> {

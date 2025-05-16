@@ -1,10 +1,10 @@
-package unitech.demo.lib.excel;
+package shintu.lib.lib.excel;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Component;
 
-import unitech.demo.lib.query.dto.CustomResult;
+import shintu.lib.lib.query.dto.CustomResult;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;

@@ -1,4 +1,4 @@
-package unitech.demo.lib.query.interfaces;
+package shintu.lib.lib.query.interfaces;
 
 public interface DtoEntityMapper<DtoPost, E> {
   E toEntity(DtoPost dto, E existing); // có thể update

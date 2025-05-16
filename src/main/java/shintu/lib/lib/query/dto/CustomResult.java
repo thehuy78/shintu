@@ -1,4 +1,4 @@
-package unitech.demo.lib.query.dto;
+package shintu.lib.lib.query.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

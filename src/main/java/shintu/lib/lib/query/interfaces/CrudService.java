@@ -1,7 +1,7 @@
-package unitech.demo.lib.query.interfaces;
+package shintu.lib.lib.query.interfaces;
 
-import unitech.demo.lib.query.dto.CustomResult;
-import unitech.demo.lib.query.dto.PagingRequest;
+import shintu.lib.lib.query.dto.CustomResult;
+import shintu.lib.lib.query.dto.PagingRequest;
 
 public interface CrudService<DtoPost, DtoGet, ID> {
   CustomResult findById(ID id);

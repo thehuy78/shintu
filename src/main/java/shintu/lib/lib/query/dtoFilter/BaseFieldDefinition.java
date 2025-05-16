@@ -1,4 +1,4 @@
-package unitech.demo.lib.query.dtoFilter;
+package shintu.lib.lib.query.dtoFilter;
 
 import lombok.*;
 
