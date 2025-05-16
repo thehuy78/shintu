@@ -1,13 +1,14 @@
-## SHINTU là một thư viện java spring boot giúp thực hiện CRUD nhanh chóng
+## SHINTU is a Java Spring Boot library to enable fast CRUD operations
 
-## Feature
-- Lấy dữ liệu get all có kèm sort filter phân page
+## Features
+- Get all data with sorting, filtering, and pagination
 - FindById
 - Create
 - Update
+- Export Excel
 
 
-Add Hintu in pom.xml
+Add Shintu to your pom.xml
 ```
  <repositories>
     <repository>
@@ -25,7 +26,7 @@ Add Hintu in pom.xml
 	</dependencies>
 ```
 
-Tại thư file run chính của thư mục
+In your main run file
 ```
 package unitech.demo;
 
@@ -36,8 +37,8 @@ import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {
-		"unitech.demo", //package project (thay đổi theo tên package của bạn)
-		"shintu.lib" // package thư viện cố định
+		"unitech.demo", // your project package (change accordingly)
+		"shintu.lib"  // fixed library package
 })
 @EnableCaching
 public class DemoApplication {
@@ -52,35 +53,36 @@ public class DemoApplication {
 
 
 ## DTO GET, DTO POST, FIELD REGISTER
-- Để thực hiện được việc chia page thì Object Paging phải theo cấu trúc, class Dto, FieldRegister cho những field đặc biệt
+- To support paging, the Paging object must follow this structure.
+- Dto and FieldRegister are used for special fields.
 ```
-//Paging nhận vào từ Frondent
-// Tôi đã có một thư viện React UI hỗ trợ việc này
-// tham khảo tại https://www.npmjs.com/package/hintu 
+// Paging input from frontend
+// I already have a React UI library supporting this:
+// see https://www.npmjs.com/package/hintu
 public class PagingRequest {
-  private int page = 0; // trang lấy ra
-  private int size = 10; // số phần tử trong 1 trang
-  private List<Filter> filter; // các object filter.
-  private SortRequest sort; // object sort.
+  private int page = 0; // page number
+  private int size = 10;// items per page
+  private List<Filter> filter;// filter objects
+  private SortRequest sort;   // sort object
 }
 
 //filter
 public class Filter {
-  private String name; // tên field filter
-  private String value; // giá trị filter
-  private String select; // select này sẽ đi theo với type định nghĩa sẵn bên dưới : "1", "2", ...
-  private String type; // kiểu dữ liệu để ứng với biểu thức filter: "string", "number", "date"
+  private String name;   // field name to filter
+  private String value; // filter value
+  private String select; // select option matched with predefined types: "1", "2", ...
+  private String type; // data type for filtering expression: "string", "number", "date"
 }
 //sort
 public class SortRequest {
-  private String sortBy; // tên field sort
+  private String sortBy; // field to sort by
   private String order; // ASC or DESC
 }
 ```
 ```
-//nếu class lồng nhau thì _ giữa các lần lồng là hệ thống sẽ hiểu để join bảng
-// nhưng field đặc biệt cần phải khai báo trong fieldRegister
-// Hiện tại getAll có filter và sort nên không hỗ trợ dto lồng nhau.
+// For nested classes, use '_' between nested levels and the system will understand joins
+// Special fields need to be declared in fieldRegister
+// Currently, getAll with filter and sort does not support nested DTOs.
   @Data
   @NoArgsConstructor
   @AllArgsConstructor
@@ -121,28 +123,25 @@ public class ProducePlanFieldRegistry extends BaseFieldRegistry {
           if (joins.containsKey("planProduceDetails")) {
             detailJoin = joins.get("planProduceDetails");
           } else {
-            detailJoin = root.join("planProduceDetails", JoinType.LEFT); // field trong entity
+            detailJoin = root.join("planProduceDetails", JoinType.LEFT); // field in entity
             joins.put("planProduceDetails", detailJoin);
           }
           return cb.sum(detailJoin.get("quantity"));
         }));
 
-    // *VÍ DỤ CHO VIỆC JOIN LỒNG NHÌU BẢNG VÀO ĐỂ LẤY GIÁ TRỊ */
+   // Example for multiple joins to get nested field value
     // map.put("productName", new BaseFieldDefinition(
     // "productName",
     // "planProduceDetails.product.name",
     // false,
     // (root, cb, joins) -> {
-    // // B1: Join từ root → planProduceDetails
-    // Join<?, ?> detailJoin = joins.computeIfAbsent("planProduceDetails",
-    // k -> root.join("planProduceDetails", JoinType.LEFT));
-
-    // // B2: Join từ planProduceDetails → product
-    // Join<?, ?> productJoin = joins.computeIfAbsent("planProduceDetails.product",
-    // k -> detailJoin.join("product", JoinType.LEFT));
-
-    // // B3: Lấy field trong bảng thứ 3
-    // return productJoin.get("name");
+    //   Join<?, ?> detailJoin = joins.computeIfAbsent("planProduceDetails",
+    //     k -> root.join("planProduceDetails", JoinType.LEFT));
+    //
+    //   Join<?, ?> productJoin = joins.computeIfAbsent("planProduceDetails.product",
+    //     k -> detailJoin.join("product", JoinType.LEFT));
+    //
+    //   return productJoin.get("name");
     // }));
 
     return map;
@@ -151,7 +150,7 @@ public class ProducePlanFieldRegistry extends BaseFieldRegistry {
 
 ```
 ## MAPPER
-- Để có thể FindById, Create, Update cần phải có mapper
+- Mapper is needed for FindById, Create, Update operations.
 
 ```
 package unitech.demo.mapper.imported.material;
@@ -321,18 +320,18 @@ public class ImportMaterialMapper implements
 }
 
 ```
-# Lưu ý
-- Ở entity cha muốn create hoặc update entity con lồng trong đó cần phải khai báo cascade rõ ràng
+# NOTE
+- In the parent entity, to create or update nested child entities, you must declare cascade clearly.
 ```
    @OneToMany(mappedBy = "materialImport", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MaterialImportDetail> materialImportDetails;
 ```
 
 
-## Dùng nó ở SERVICE
- - Có thể dùng mặc định theo fieldRegister hoặc Mapper
- - Hoặc có thể Override lại tuỳ thích
- - Nếu getall không có field đặc biệt nào thì có thể dùng DefaultFieldRegister
+## Using in SERVICE
+ - You can use default FieldRegister or Mapper
+ - Or override as needed
+ - If getAll has no special fields, you can use DefaultFieldRegister
 ```
 @Service
 public class ProducePlanService extends BaseCrudService<ProducePlanDtoPost, ProducePlanDto, PlanProduce, Long>
@@ -349,7 +348,7 @@ public class ProducePlanService extends BaseCrudService<ProducePlanDtoPost, Prod
 
 ## Controller
 
-- Nhúng service vào và gọi hàm từ service theo route
+- Inject service and call functions via routes
 ```
 @RestController
 @RequestMapping("/api/produce")
@@ -390,15 +389,17 @@ public class ProducePlanController {
 }
 ```
 
-## Ngoài ra
+## Additional
 ```
-// ngoài việc sử dụng hàm excel có sẵn từ baseCrudService để xuất excel theo DTO getAll
-// thì cũng có thể dùng để xuất theo DTO và data mình muốn
+// Besides using the built-in excel export function from baseCrudService for exporting getAll DTO,
+// you can also export with your own DTO and data:
+
 ExcelExportUtil.export(null, null, null);
 
-// tham số đầu tiên là list data
-// tham số thứ 2 là class của data
-// tham số thứ 3 là sheetname
+// parameters:
+// 1st: list data
+// 2nd: data class
+// 3rd: sheet name
 ```
 
 ## Contact
