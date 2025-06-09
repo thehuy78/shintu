@@ -1,5 +1,6 @@
 package shintu.lib.lib.query.service;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -22,11 +23,21 @@ public class BaseCrudService<DtoPost, DtoGet, E, ID> implements CrudService<DtoP
 
   private final JpaRepository<E, ID> repository;
   private final DtoEntityMapper<DtoPost, E> mapper;
-  private final Class<E> entityClass;
-  private final Class<DtoGet> dtoGetClass;
+  // private final Class<E> entityClass;
+  // private final Class<DtoGet> dtoGetClass;
   private final BaseFieldRegistry fieldRegistry;
   @PersistenceContext
   private EntityManager em;
+
+  protected Class<E> getEntityClass() {
+    return (Class<E>) ((ParameterizedType) getClass().getGenericSuperclass())
+        .getActualTypeArguments()[2];
+  }
+
+  protected Class<DtoGet> getDtoGetClass() {
+    return (Class<DtoGet>) ((ParameterizedType) getClass().getGenericSuperclass())
+        .getActualTypeArguments()[1];
+  }
 
   @Override
   public CustomResult findById(ID id) {
@@ -71,7 +82,7 @@ public class BaseCrudService<DtoPost, DtoGet, E, ID> implements CrudService<DtoP
   @Override
   public CustomResult get(PagingRequest request) {
     try {
-      BaseDtoQueryService<E, DtoGet> queryService = new BaseDtoQueryService<>(entityClass, dtoGetClass,
+      BaseDtoQueryService<E, DtoGet> queryService = new BaseDtoQueryService<>(getEntityClass(), getDtoGetClass(),
           fieldRegistry, em);
       Page<DtoGet> page = queryService.filter(request);
       return new CustomResult(200, "Success", page);
@@ -83,7 +94,7 @@ public class BaseCrudService<DtoPost, DtoGet, E, ID> implements CrudService<DtoP
   @Override
   public CustomResult excel(PagingRequest request) {
     try {
-      BaseDtoQueryService<E, DtoGet> queryService = new BaseDtoQueryService<>(entityClass, dtoGetClass,
+      BaseDtoQueryService<E, DtoGet> queryService = new BaseDtoQueryService<>(getEntityClass(), getDtoGetClass(),
           fieldRegistry, em);
       List<Tuple> tuple = queryService.getAllDataForExport(request);
       List<Tuple> processedData = beforeExcelData(tuple);
