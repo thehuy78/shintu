@@ -432,7 +432,7 @@ public class BaseDtoQueryService<T, D> {
   /**
    * Ghi dữ liệu vào Excel và trả về base64
    */
-  protected String writeDataToExcel(List<Tuple> tuples) {
+  public String writeDataToExcel(List<Tuple> tuples) {
     // Tạo exportFields như cũ
     List<ExportField> exportFields = createExportFields();
 

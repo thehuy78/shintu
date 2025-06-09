@@ -6,7 +6,7 @@
     
     <groupId>io.github.thehuy78</groupId>
     <artifactId>shintu</artifactId>
-    <version>3.0.0</version>
+    <version>4.1.0</version>
     <packaging>jar</packaging>
     
     <name>shintu</name>
