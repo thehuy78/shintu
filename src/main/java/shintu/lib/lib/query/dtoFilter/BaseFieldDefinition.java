@@ -11,4 +11,9 @@ public class BaseFieldDefinition {
   private boolean isAggregate; // true nếu field là 1 phép tính tổng hợp (sum, avg, count,...).
                                // Quan trọng vì khi filter() phân biệt Predicate để where hay having.
   private ExpressionProvider<?> expressionProvider; // expression của field
+
+  // Helper method to get path components
+  public String[] getPathComponents() {
+    return entityPath.split("\\.");
+  }
 }

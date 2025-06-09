@@ -2,41 +2,32 @@ package shintu.lib.lib.query.service;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.util.*;
-
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.Font;
-import org.apache.poi.ss.usermodel.HorizontalAlignment;
-import org.apache.poi.ss.usermodel.IndexedColors;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.VerticalAlignment;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.*;
-
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import jakarta.persistence.TupleElement;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
-import lombok.*;
+import lombok.RequiredArgsConstructor;
 import shintu.lib.lib.query.dto.Filter;
 import shintu.lib.lib.query.dto.PagingRequest;
 import shintu.lib.lib.query.dtoFilter.BaseFieldDefinition;
 import shintu.lib.lib.query.dtoFilter.BaseFieldRegistry;
 import shintu.lib.lib.query.dtoFilter.ExpressionProvider;
+import shintu.lib.lib.query.interfaces.EntityPath;
 
 @RequiredArgsConstructor
 public class BaseDtoQueryService<T, D> {
 
-  private final EntityManager em;
   private final Class<T> entityClass;
   private final Class<D> dtoClass;
   private final BaseFieldRegistry fieldRegistry;
+  private final EntityManager em;
 
   public Page<D> filter(PagingRequest request) {
     Map<String, Expression<?>> expressionCache = new HashMap<>();
@@ -50,20 +41,26 @@ public class BaseDtoQueryService<T, D> {
     List<Predicate> having = new ArrayList<>();
     List<Order> orders = new ArrayList<>();
     Set<String> handled = new HashSet<>();
+
+    // Process fields including nested ones
     for (Field dtoField : getAllFields(dtoClass)) {
       String dtoFieldName = dtoField.getName();
 
-      BaseFieldDefinition def = fieldRegistry.get(dtoFieldName);
+      // Check for @EntityPath annotation
+      EntityPath entityPath = dtoField.getAnnotation(EntityPath.class);
+      String fieldKey = entityPath != null ? entityPath.value() : dtoFieldName;
+
+      BaseFieldDefinition def = fieldRegistry.get(fieldKey);
       if (def == null || handled.contains(dtoFieldName))
         continue;
+
       @SuppressWarnings("unchecked")
       Expression<?> expr = expressionCache.computeIfAbsent(dtoFieldName,
           key -> ((ExpressionProvider<T>) def.getExpressionProvider()).apply(root, cb, joins));
-      selections.add(expr.alias(dtoFieldName));
+      selections.add(expr.alias(fieldKey)); // Use the full path as alias
       if (!def.isAggregate()) {
         groupBy.add(expr);
       }
-
       handled.add(dtoFieldName);
     }
 
@@ -72,7 +69,7 @@ public class BaseDtoQueryService<T, D> {
       String fieldName = f.getName();
       String value = f.getValue();
       if (value == null || value.trim().isEmpty())
-        continue; // Bỏ qua nếu value rỗng
+        continue;
       BaseFieldDefinition def = fieldRegistry.get(fieldName);
       if (def == null)
         continue;
@@ -103,17 +100,12 @@ public class BaseDtoQueryService<T, D> {
       orders.add(cb.desc(root.get("id")));
     }
 
-    // if (orders.isEmpty() && groupBy.isEmpty()) {
-    // orders.add(cb.desc(root.get("id")));
-    // }
-
     cq.multiselect(selections);
 
     if (!groupBy.isEmpty())
       cq.groupBy(groupBy);
     if (!predicates.isEmpty())
       cq.where(predicates.toArray(new Predicate[0]));
-
     if (!having.isEmpty())
       cq.having(having.toArray(new Predicate[0]));
     if (!orders.isEmpty())
@@ -127,13 +119,8 @@ public class BaseDtoQueryService<T, D> {
     query.setMaxResults(request.getSize());
     List<Tuple> tuples = query.getResultList();
 
-    // o
-
     int page = request.getPage();
     int size = request.getSize();
-
-    // query.setFirstResult(page * size);
-    // query.setMaxResults(size);
 
     List<D> content = tuples.stream().map(t -> {
       try {
@@ -141,18 +128,15 @@ public class BaseDtoQueryService<T, D> {
         for (TupleElement<?> el : t.getElements()) {
           String alias = el.getAlias();
           Object value = t.get(alias);
-          Field field = getFieldRecursive(dtoClass, alias);
-          if (field != null) {
-            field.setAccessible(true);
-            field.set(dto, value);
-          }
+          setNestedField(dto, alias, value);
         }
         return dto;
       } catch (Exception e) {
-        throw new RuntimeException("DTO mapping failed", e);
+        throw new RuntimeException(e.getMessage(), e);
       }
     }).toList();
-    // Count
+
+    // Count query remains the same
     CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
     Root<T> countRoot = countQuery.from(entityClass);
     Map<String, Join<?, ?>> countJoins = new HashMap<>();
@@ -162,7 +146,7 @@ public class BaseDtoQueryService<T, D> {
       String fieldName = f.getName();
       String value = f.getValue();
       if (value == null || value.trim().isEmpty())
-        continue; // Bỏ qua nếu value rỗng
+        continue;
       BaseFieldDefinition def = fieldRegistry.get(fieldName);
       if (def == null || def.isAggregate())
         continue;
@@ -182,19 +166,94 @@ public class BaseDtoQueryService<T, D> {
     return new PageImpl<>(content, PageRequest.of(page, size), totalElements);
   }
 
-  // lấy tất cả các field có thể có trong supper class
+  private void setNestedField(Object target, String fieldPath, Object value) throws Exception {
+    String[] parts = fieldPath.split("\\.");
+    Object current = target;
+
+    for (int i = 0; i < parts.length - 1; i++) {
+      String part = parts[i];
+      Field field = getFieldRecursive(current.getClass(), part);
+      field.setAccessible(true);
+
+      // Get or create nested object
+      Object nested = field.get(current);
+      if (nested == null) {
+        nested = field.getType().getDeclaredConstructor().newInstance();
+        field.set(current, nested);
+      }
+      current = nested;
+    }
+
+    // Set the final value
+    String finalField = parts[parts.length - 1];
+    Field field = getFieldRecursive(current.getClass(), finalField);
+    if (field != null) {
+      field.setAccessible(true);
+
+      // Handle entity to DTO conversion
+      if (value != null && !field.getType().isInstance(value)) {
+        // If the value is an entity but field expects DTO, we need to convert
+        if (isJpaEntity(value.getClass()) && !isJpaEntity(field.getType())) {
+          value = convertEntityToDto(value, field.getType());
+        }
+      }
+
+      field.set(current, value);
+    }
+  }
+
+  private boolean isJpaEntity(Class<?> clazz) {
+    return clazz.getAnnotation(jakarta.persistence.Entity.class) != null;
+  }
+
+  private Object convertEntityToDto(Object entity, Class<?> dtoClass) throws Exception {
+
+    Object dto = dtoClass.getDeclaredConstructor().newInstance();
+    for (Field dtoField : getAllFields(dtoClass)) {
+      EntityPath pathAnnotation = dtoField.getAnnotation(EntityPath.class);
+      if (pathAnnotation != null) {
+        String path = pathAnnotation.value();
+        Object value = getEntityValue(entity, path);
+        if (value != null) {
+          dtoField.setAccessible(true);
+          dtoField.set(dto, value);
+        }
+      } else {
+        String path = dtoField.getName();
+        Object value = getEntityValue(entity, path);
+        if (value != null) {
+          dtoField.setAccessible(true);
+          dtoField.set(dto, value);
+        }
+      }
+    }
+    return dto;
+  }
+
+  private Object getEntityValue(Object entity, String path) throws Exception {
+    String[] parts = path.split("\\.");
+    Object current = entity;
+    for (String part : parts) {
+      if (current == null)
+        return null;
+      Field field = getFieldRecursive(current.getClass(), part);
+      field.setAccessible(true);
+      current = field.get(current);
+    }
+    return current;
+  }
+
   private Field getFieldRecursive(Class<?> clazz, String fieldName) {
     while (clazz != null) {
       try {
         return clazz.getDeclaredField(fieldName);
       } catch (NoSuchFieldException e) {
-        clazz = clazz.getSuperclass(); // tìm trong lớp cha
+        clazz = clazz.getSuperclass();
       }
     }
     return null;
   }
 
-  // đệ quy tất cả các field có thể có trong supper class
   public List<Field> getAllFields(Class<?> clazz) {
     List<Field> fields = new ArrayList<>();
     while (clazz != null && clazz != Object.class) {
@@ -204,47 +263,45 @@ public class BaseDtoQueryService<T, D> {
     return fields;
   }
 
-  // đọc từng filter để tạo expr cho nó
   private Predicate buildPredicate(CriteriaBuilder cb, Expression<?> expr, Filter f) {
     String value = f.getValue();
     String select = f.getSelect();
     String type = f.getType();
 
     if (value == null || value.trim().isEmpty()) {
-      return cb.conjunction(); // Bỏ qua nếu value rỗng
+      return cb.conjunction();
     }
 
     try {
       switch (type.toLowerCase()) {
-        case "string": // nếu kiểu dữ liệu của field là String
+        case "string":
           switch (select) {
-            case "1": // contains
+            case "1":
               return cb.like(cb.lower(expr.as(String.class)), "%" + value.toLowerCase() + "%");
-            case "2": // not contains
+            case "2":
               return cb.notLike(cb.lower(expr.as(String.class)), "%" + value.toLowerCase() + "%");
-            case "3": // equal
+            case "3":
               return cb.equal(cb.lower(expr.as(String.class)), value.toLowerCase());
-            case "4": // not equal
+            case "4":
               return cb.notEqual(cb.lower(expr.as(String.class)), value.toLowerCase());
-            case "5": // is null
+            case "5":
               return cb.isNull(expr);
           }
           break;
 
-        case "number": // nếu kiểu dữ liệu của field là number
+        case "number":
           Double num = Double.parseDouble(value);
           switch (select) {
-            case "1": // lớn hơn
+            case "1":
               return cb.gt(expr.as(Double.class), num);
-            case "2": // bé hơn
+            case "2":
               return cb.lt(expr.as(Double.class), num);
-            case "3": // bằng
+            case "3":
               return cb.equal(expr.as(Double.class), num);
-            case "4":// bé hơn bằng
+            case "4":
               return cb.le(expr.as(Double.class), num);
-            case "5": // lớn hơn bằng
+            case "5":
               return cb.ge(expr.as(Double.class), num);
-
           }
           break;
 
@@ -266,14 +323,16 @@ public class BaseDtoQueryService<T, D> {
           break;
       }
     } catch (Exception e) {
-      System.out.println("Lỗi khi xử lý filter: " + f + " - " + e.getMessage());
+      System.out.println("Filter processing error: " + f + " - " + e.getMessage());
       return cb.conjunction();
     }
 
-    return cb.conjunction(); // fallback nếu không match gì
+    return cb.conjunction();
   }
 
-  public String exportToExcelBase64(PagingRequest request) {
+  /// excel
+
+  public List<Tuple> getAllDataForExport(PagingRequest request) {
     Map<String, Expression<?>> expressionCache = new HashMap<>();
     Map<String, Join<?, ?>> joins = new HashMap<>();
     CriteriaBuilder cb = em.getCriteriaBuilder();
@@ -285,109 +344,230 @@ public class BaseDtoQueryService<T, D> {
     List<Predicate> having = new ArrayList<>();
     Set<String> handled = new HashSet<>();
 
+    // Collect all fields to export (flattened structure)
+    List<ExportField> exportFields = new ArrayList<>();
     for (Field dtoField : getAllFields(dtoClass)) {
-      String dtoFieldName = dtoField.getName();
-      BaseFieldDefinition def = fieldRegistry.get(dtoFieldName);
-      if (def == null || handled.contains(dtoFieldName))
+      if (Modifier.isStatic(dtoField.getModifiers())) {
+        continue; // Skip static fields
+      }
+
+      // Check if this is a nested DTO field
+      if (!isSimpleType(dtoField.getType())) {
+        // Process nested DTO fields
+        for (Field nestedField : getAllFields(dtoField.getType())) {
+          if (Modifier.isStatic(nestedField.getModifiers())) {
+            continue;
+          }
+
+          String fieldPath = dtoField.getName() + "_" + nestedField.getName();
+          String displayName = capitalize(dtoField.getName()) + capitalize(nestedField.getName());
+
+          exportFields.add(new ExportField(
+              displayName,
+              fieldPath,
+              fieldPath));
+        }
+      } else {
+        // Simple field
+        exportFields.add(new ExportField(
+            capitalize(dtoField.getName()),
+            dtoField.getName(),
+            dtoField.getName()));
+      }
+    }
+    // Build selections for the query
+    for (ExportField field : exportFields) {
+      BaseFieldDefinition def = fieldRegistry.get(field.fieldPath);
+      if (def == null || handled.contains(field.alias)) {
         continue;
+      }
 
       @SuppressWarnings("unchecked")
-      Expression<?> expr = expressionCache.computeIfAbsent(dtoFieldName,
+      Expression<?> expr = expressionCache.computeIfAbsent(field.fieldPath,
           key -> ((ExpressionProvider<T>) def.getExpressionProvider()).apply(root, cb, joins));
-      selections.add(expr.alias(dtoFieldName));
-      if (!def.isAggregate())
+      selections.add(expr.alias(field.alias));
+      if (!def.isAggregate()) {
         groupBy.add(expr);
-      handled.add(dtoFieldName);
+      }
+      handled.add(field.alias);
     }
-
     // Build filters
     for (Filter f : request.getFilter()) {
       String fieldName = f.getName();
       String value = f.getValue();
-      if (value == null || value.trim().isEmpty())
+      if (value == null || value.trim().isEmpty()) {
         continue;
+      }
 
       BaseFieldDefinition def = fieldRegistry.get(fieldName);
-      if (def == null)
+      if (def == null) {
         continue;
+      }
 
       @SuppressWarnings("unchecked")
       Expression<?> expr = expressionCache.computeIfAbsent(fieldName,
           key -> ((ExpressionProvider<T>) def.getExpressionProvider()).apply(root, cb, joins));
       Predicate p = buildPredicate(cb, expr, f);
 
-      if (def.isAggregate())
+      if (def.isAggregate()) {
         having.add(p);
-      else
+      } else {
         predicates.add(p);
+      }
     }
 
     cq.multiselect(selections);
-    if (!groupBy.isEmpty())
+    if (!groupBy.isEmpty()) {
       cq.groupBy(groupBy);
-    if (!predicates.isEmpty())
+    }
+    if (!predicates.isEmpty()) {
       cq.where(predicates.toArray(new Predicate[0]));
-    if (!having.isEmpty())
+    }
+    if (!having.isEmpty()) {
       cq.having(having.toArray(new Predicate[0]));
+    }
+    return em.createQuery(cq).getResultList();
+  }
 
-    List<Tuple> tuples = em.createQuery(cq).getResultList();
+  /**
+   * Ghi dữ liệu vào Excel và trả về base64
+   */
+  protected String writeDataToExcel(List<Tuple> tuples) {
+    // Tạo exportFields như cũ
+    List<ExportField> exportFields = createExportFields();
 
     try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
       Sheet sheet = workbook.createSheet("Export");
-      // Tạo style cho header
-      CellStyle headerStyle = workbook.createCellStyle();
-      Font font = workbook.createFont();
-      font.setBold(true);
-      font.setFontHeightInPoints((short) 12); // Font to hơn 1 chút
-      headerStyle.setFont(font);
 
-      // Màu nền xám nhạt
-      headerStyle.setFillForegroundColor(IndexedColors.AQUA.getIndex());
-      headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+      // Tạo header
+      createExcelHeader(sheet, exportFields);
 
-      // Căn giữa
-      headerStyle.setAlignment(HorizontalAlignment.CENTER);
-      headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-      Row header = sheet.createRow(0);
+      // Ghi dữ liệu
+      writeExcelData(sheet, tuples, exportFields);
 
-      // Header
-      int colIndex = 0;
-      for (TupleElement<?> el : tuples.get(0).getElements()) {
-        Cell headerCell = header.createCell(colIndex++);
-        headerCell.setCellValue(capitalize(el.getAlias()));
-        headerCell.setCellStyle(headerStyle);
-      }
-      // Rows
-      for (int i = 0; i < tuples.size(); i++) {
-        Row row = sheet.createRow(i + 1);
-        Tuple t = tuples.get(i);
-        int ci = 0;
-        for (TupleElement<?> el : t.getElements()) {
-          Object val = t.get(el.getAlias());
-          Cell cell = row.createCell(ci++);
-          if (val instanceof Number) {
-            cell.setCellValue(((Number) val).doubleValue());
-          } else if (val instanceof LocalDate) {
-            cell.setCellValue(val.toString());
-          } else {
-            cell.setCellValue(val != null ? val.toString() : "");
-          }
-        }
-      }
-      for (int i = 0; i < tuples.get(0).getElements().size(); i++) {
-        sheet.autoSizeColumn(i);
-      }
+      // Auto-size columns
+      autoSizeColumns(sheet, exportFields.size());
+
       workbook.write(out);
       return Base64.getEncoder().encodeToString(out.toByteArray());
-
     } catch (Exception e) {
       throw new RuntimeException("Export to Excel failed", e);
     }
   }
 
+  // Các phương thức phụ trợ:
+
+  protected List<ExportField> createExportFields() {
+    List<ExportField> exportFields = new ArrayList<>();
+    for (Field dtoField : getAllFields(dtoClass)) {
+      if (Modifier.isStatic(dtoField.getModifiers()))
+        continue;
+
+      if (!isSimpleType(dtoField.getType())) {
+        for (Field nestedField : getAllFields(dtoField.getType())) {
+          if (Modifier.isStatic(nestedField.getModifiers()))
+            continue;
+
+          String fieldPath = dtoField.getName() + "_" + nestedField.getName();
+          exportFields.add(new ExportField(
+              capitalize(dtoField.getName()) + capitalize(nestedField.getName()),
+              fieldPath,
+              fieldPath));
+        }
+      } else {
+        exportFields.add(new ExportField(
+            capitalize(dtoField.getName()),
+            dtoField.getName(),
+            dtoField.getName()));
+      }
+    }
+    return exportFields;
+  }
+
+  protected void createExcelHeader(Sheet sheet, List<ExportField> exportFields) {
+    CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+    Row headerRow = sheet.createRow(0);
+
+    for (int i = 0; i < exportFields.size(); i++) {
+      Cell headerCell = headerRow.createCell(i);
+      headerCell.setCellValue(exportFields.get(i).displayName);
+      headerCell.setCellStyle(headerStyle);
+    }
+  }
+
+  protected void writeExcelData(Sheet sheet, List<Tuple> tuples, List<ExportField> exportFields) {
+    for (int rowIndex = 0; rowIndex < tuples.size(); rowIndex++) {
+      Row dataRow = sheet.createRow(rowIndex + 1);
+      Tuple tuple = tuples.get(rowIndex);
+
+      for (int colIndex = 0; colIndex < exportFields.size(); colIndex++) {
+        ExportField field = exportFields.get(colIndex);
+        Object value = tuple.get(field.alias);
+        setCellValue(dataRow.createCell(colIndex), value);
+      }
+    }
+  }
+
+  protected CellStyle createHeaderStyle(Workbook workbook) {
+    CellStyle style = workbook.createCellStyle();
+    Font font = workbook.createFont();
+    font.setBold(true);
+    font.setFontHeightInPoints((short) 12);
+    style.setFont(font);
+    style.setFillForegroundColor(IndexedColors.AQUA.getIndex());
+    style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+    style.setAlignment(HorizontalAlignment.CENTER);
+    style.setVerticalAlignment(VerticalAlignment.CENTER);
+    return style;
+  }
+
+  protected void setCellValue(Cell cell, Object value) {
+    if (value instanceof Number) {
+      cell.setCellValue(((Number) value).doubleValue());
+    } else if (value instanceof LocalDate) {
+      cell.setCellValue(value.toString());
+    } else if (value instanceof Boolean) {
+      cell.setCellValue((Boolean) value);
+    } else {
+      cell.setCellValue(value != null ? value.toString() : "");
+    }
+  }
+
+  protected void autoSizeColumns(Sheet sheet, int columnCount) {
+    for (int i = 0; i < columnCount; i++) {
+      sheet.autoSizeColumn(i);
+    }
+  }
+  //////////////////////////////////////////////////////////
+
+  private boolean isSimpleType(Class<?> type) {
+    return type.isPrimitive() ||
+        type.equals(String.class) ||
+        type.equals(Integer.class) ||
+        type.equals(Long.class) ||
+        type.equals(Double.class) ||
+        type.equals(Boolean.class) ||
+        type.equals(LocalDate.class) ||
+        type.equals(Date.class) ||
+        type.getName().startsWith("java.");
+  }
+
+  private static class ExportField {
+    String displayName; // e.g. "CustomerName"
+    String fieldPath; // e.g. "customer_name" (for query)
+    String alias; // e.g. "customer_name" (for tuple access)
+
+    public ExportField(String displayName, String fieldPath, String alias) {
+      this.displayName = displayName;
+      this.fieldPath = fieldPath;
+      this.alias = alias;
+    }
+  }
+
   private String capitalize(String input) {
-    if (input == null || input.isEmpty())
+    if (input == null || input.isEmpty()) {
       return input;
+    }
     return input.substring(0, 1).toUpperCase() + input.substring(1);
   }
 
@@ -403,5 +583,4 @@ public class BaseDtoQueryService<T, D> {
     }
     return false;
   }
-
 }
